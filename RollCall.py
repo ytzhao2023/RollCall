@@ -15,7 +15,7 @@ class APP:
 
         # Set the running flag and time span for the selection process.
         self.running_flag = False 
-        self.time_span = 0.1
+        self.time_span = 0.1 
 
         self.initialize_window()
 
@@ -31,7 +31,7 @@ class APP:
 
     def initialize_window(self):
         # Set the title of the main window.
-        self.root.title('Roll Call')
+        self.root.title('Random Selection')
 
         # Set the size of the main window and calculate the position to 
         # center it on the screen. 
@@ -53,7 +53,7 @@ class APP:
         # Create label, buttons, and frame widgets.
         self.label_show_name = ttk.Label(self.root, textvariable = 
                                         self.label_show_name_var, font = 
-                                        ('Arial', 60, "bold"), foreground = 
+                                        ('Arial', 80, "bold"), foreground = 
                                         "#1E90FF")
         self.btn_start = ttk.Button(self.root, text = "Start", command = lambda: self.thread_it(self.start_point_name))
         self.btn_load_names = ttk.Button(self.root, text = "Load Names", command = self.load_names)
@@ -69,6 +69,7 @@ class APP:
                                                self.radioBtn_var, value = 3)
         self.label_show_name_num = ttk.Label(self.root, font = ('Arial', 20), 
                                             foreground = '#FF7F50')
+
 
 
     def configure_widget(self):
@@ -111,10 +112,11 @@ class APP:
         self.label_frame.place(x = 200, y = 250, width = 300, height = 50)
         self.radioBtn_sequence.place(x = 20, y = 0)
         self.radioBtn_random.place(x = 105, y = 0)
-        self.radioBtn_deduplicate.place(x = 180, y = 0)#/////////////////////
+        self.radioBtn_deduplicate.place(x = 180, y = 0)
         self.btn_start.place(x = 290, y = 150, width = 120, height = 30)
         self.btn_load_names.place(x = 290, y = 200, width = 120, height = 30)
         self.label_show_name_num.place(x = 200, y = 330)
+
 
 
     def label_show_name_adjust(self, the_name):
@@ -163,7 +165,7 @@ class APP:
                 elif self.radioBtn_var.get() == 2:
                     mode = "random"
                 elif self.radioBtn_var.get() == 3:
-                    mode = "deduplicate"#///////////////////////////////////////////////////
+                    mode = "deduplicate"
                 else:
                     pass
 
@@ -185,7 +187,8 @@ class APP:
     def point_name_begin(self, mode):
         if mode == "sequence":
             if self.running_flag:
-                self.always_ergodic()
+                self.btn_start.config(text="Next")  # 更改按钮文本为“Next”############
+                self.next_point_name()
         elif mode == "random":
             while True:
                 if self.running_flag:
@@ -201,7 +204,7 @@ class APP:
                     time.sleep(self.time_span)
                 else:
                     break
-        elif mode == "deduplicate":#////////////////////////////////////////////////////////////
+        elif mode == "deduplicate":
             while True:
                 if self.running_flag and self.default_names:
 
@@ -232,16 +235,33 @@ class APP:
                     break
 
 
+    def next_point_name(self):
+        if len(self.default_names) > 0:  # 如果还有名字
+            current_name = self.default_names.pop(0)  # 移除第一个名字并获取
+            self.label_show_name_var.set(current_name)  # 设置标签显示当前名字
+            self.label_show_name_adjust(current_name)  # 调整标签位置
+            self.btn_start.config(text="Next")  # 更改按钮文本为“Next”############
+            self.btn_start.config(command=self.next_point_name)  # 更新按钮命令为下一个名字
+        else:
+            self.show_warning("All names have been displayed!")
+            self.btn_start.config(text="Start")  # 如果名字全部展示完毕，按钮恢复为“Start”状态
+            self.btn_start.config(command=lambda: self.thread_it(self.start_point_name))  # 更新按钮命令为开始点名
+
+
     def always_ergodic(self):
         for i in self.default_names:
             if self.running_flag:
                 self.label_show_name_var.set(i)
                 self.label_show_name_adjust(i)
+
+                self.btn_start.config(text = "That's you")
+
                 time.sleep(self.time_span)
 
                 # If i is the last name of the list, repeat the loop.
                 if i == self.default_names[-1]:
-                    self.always_ergodic()
+                    self.show_warning("All names have been displayed!")        
+                    break
             else:
                 break
     
@@ -324,5 +344,3 @@ class APP:
 
 if __name__ == "__main__":
     a = APP()
-                
-
