@@ -16,6 +16,7 @@ class APP:
         # Set the running flag and time span for the selection process.
         self.running_flag = False 
         self.time_span = 0.1 
+        self.index = 0
 
         self.initialize_window()
 
@@ -73,7 +74,7 @@ class APP:
 
 
     def configure_widget(self):
-        default_name = "Who will be?"
+        default_name = "Who will be selected?"
 
         # We have already linked a lavel with self.label_show_name_var 
         # variable, the set method will update the value of the varible.
@@ -120,7 +121,6 @@ class APP:
 
 
     def label_show_name_adjust(self, the_name):
-
         label_width = self.label_show_name.winfo_reqwidth()
         window_width = 700  # Width of the main window, adjust as needed
 
@@ -132,7 +132,7 @@ class APP:
 
     def start_point_name(self):
         # Check if there is only one person in the name list.
-        if len(self.default_names) == 1:
+        if len(self.default_names) == 1 and self.index == 0:
         
             # Show a message if there is only one person.
             self.show_warning("Only one person in the name list")
@@ -225,13 +225,14 @@ class APP:
 
                     
                 elif len(self.default_names)==0:
-                    self.show_warning("All names have been displayed!")        
+                    self.show_warning("All names have been displayed! Please load a new list.")        
                     break
                 else:
                     
                     #Remove the random name"" from name list
                     self.default_names.remove(current_name)
                     self.default_names = list(filter(None, self.default_names))  # 删除空行
+                    self.index +=1
                     self.label_show_name_num.config(text = f"The Number Of Loading Names: {len(self.default_names)}")
 
                     break
@@ -245,7 +246,7 @@ class APP:
             self.btn_start.config(text="Next")  # 更改按钮文本为“Next”############
             self.btn_start.config(command=self.next_point_name)  # 更新按钮命令为下一个名字
         else:
-            self.show_warning("All names have been displayed!")
+            self.show_warning("All names have been displayed! Please load a new list.")
             self.btn_start.config(text="Start")  # 如果名字全部展示完毕，按钮恢复为“Start”状态
             self.btn_load_names.config(state = NORMAL) 
             self.btn_start.config(command=lambda: self.thread_it(self.start_point_name))  # 更新按钮命令为开始点名
@@ -263,7 +264,7 @@ class APP:
 
                 # If i is the last name of the list, repeat the loop.
                 if i == self.default_names[-1]:
-                    self.show_warning("All names have been displayed!")        
+                    self.show_warning("All names have been displayed!Please load a new list.")        
                     break
             else:
                 break
@@ -281,7 +282,7 @@ class APP:
 
                 # Update the label to display the number of the name list.
                 self.label_show_name_num.config(text = f"the total number of loading names: {len(self.default_names)}" )
-                default_name = "Who will be?"
+                default_name = "Who will be selected?"
                 self.label_show_name_var.set(default_name)
                 self.label_show_name_adjust(default_name)
 
@@ -322,11 +323,8 @@ class APP:
             self.label_show_name_num.config(text="Please Loading Name List First!")
         
 
-
-
-
-
     def thread_it(self, func, *args):
+
         # Set a new thread.
         t = threading.Thread(target = func, args = args)
 
