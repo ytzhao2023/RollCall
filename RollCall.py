@@ -54,7 +54,7 @@ class APP:
         # Create label, buttons, and frame widgets.
         self.label_show_name = ttk.Label(self.root, textvariable = 
                                         self.label_show_name_var, font = 
-                                        ('Arial', 80, "bold"), foreground = 
+                                        ('Arial', 60, "bold"), foreground = 
                                         "#1E90FF")
         self.btn_start = ttk.Button(self.root, text = "Start", command = lambda: self.thread_it(self.start_point_name))
         self.btn_load_names = ttk.Button(self.root, text = "Load Names", command = self.load_names)
