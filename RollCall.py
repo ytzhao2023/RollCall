@@ -166,6 +166,7 @@ class APP:
                     mode = "random"
                 elif self.radioBtn_var.get() == 3:
                     mode = "deduplicate"
+
                 else:
                     pass
 
@@ -186,13 +187,14 @@ class APP:
 
     def point_name_begin(self, mode):
         if mode == "sequence":
-            if self.running_flag:
-                self.btn_start.config(text="Next")  # 更改按钮文本为“Next”############
-                self.next_point_name()
+            while True:
+                if self.running_flag:
+                    self.btn_start.config(text="Next")  # 更改按钮文本为“Next”############
+                    self.next_point_name()
+                    break
         elif mode == "random":
             while True:
                 if self.running_flag:
-                    
                     # select a name randomly.
                     random_choice_name = random.choice(self.default_names)
 
@@ -245,6 +247,7 @@ class APP:
         else:
             self.show_warning("All names have been displayed!")
             self.btn_start.config(text="Start")  # 如果名字全部展示完毕，按钮恢复为“Start”状态
+            self.btn_load_names.config(state = NORMAL) 
             self.btn_start.config(command=lambda: self.thread_it(self.start_point_name))  # 更新按钮命令为开始点名
 
 
@@ -309,8 +312,21 @@ class APP:
             return False
     
 
-    def thread_it(self, func, *args):
+    def reset_name_list(self,mode = None):
+        init_names = self.load_names_txt("./names.txt")
+        if init_names:
+            self.default_names = init_names
+            self.label_show_name_num.config(text=f"The Number Of Loading Names: {len(self.default_names)}")
+        else:
+            self.btn_start.config(state=DISABLED)
+            self.label_show_name_num.config(text="Please Loading Name List First!")
+        
 
+
+
+
+
+    def thread_it(self, func, *args):
         # Set a new thread.
         t = threading.Thread(target = func, args = args)
 
@@ -344,3 +360,5 @@ class APP:
 
 if __name__ == "__main__":
     a = APP()
+                
+
