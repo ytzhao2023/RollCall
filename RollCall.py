@@ -2,12 +2,20 @@ import random
 import re
 import time
 import threading
+from enum import Enum
 from tkinter import *
 from tkinter import ttk
 from tkinter import messagebox
 from tkinter.filedialog import askopenfilename
 
-class APP:
+class Mode(Enum):
+    SEQUENCE = 0
+    RANDOM = 1
+    DEDUP = 2
+
+
+# Main class of the application RollCall.
+class RollCall:
     # Initialize the GUI.
     def __init__(self):
         # Set the main application window.
@@ -20,7 +28,7 @@ class APP:
 
         self.initialize_window()
 
-        # Define some methods to create, set and place the widgets within the 
+        # Define the methods to create, set and place the widgets within the 
         # main window.
         self.create_widget()
         self.configure_widget()
@@ -28,7 +36,6 @@ class APP:
 
         # Start the main event loop of the main window.
         self.root.mainloop()
-
 
     def initialize_window(self):
         # Set the title of the main window.
@@ -44,7 +51,6 @@ class APP:
 
         # Disable window resizing.
         self.root.resizable(0,0)
-
 
     def create_widget(self):      
         # Create a variable for label text and radio button selection.
@@ -70,8 +76,6 @@ class APP:
                                                self.radioBtn_var, value = 3)
         self.label_show_name_num = ttk.Label(self.root, font = ('Arial', 20), 
                                             foreground = '#FF7F50')
-
-
 
     def configure_widget(self):
         default_name = "Who will be selected?"
@@ -100,14 +104,8 @@ class APP:
 
         # Calling the method self.load_names_txt to load names from txt file 
         # and store them in a variable.
-        init_names = self.load_names_txt("./names.txt")
-        if init_names:
-            self.default_names = init_names
-            self.label_show_name_num.config(text = f"The Number Of Loading Names: {len(self.default_names)}")
-        else:
-            self.btn_start.config(state = DISABLED)
-            self.label_show_name_num.config(text = f"Please Loading Name List First!")
-        
+        self.filename = "./names.txt"
+        self.initialize_name_list()
 
     def place_widget(self):
         self.label_frame.place(x = 200, y = 250, width = 300, height = 50)
@@ -118,8 +116,6 @@ class APP:
         self.btn_load_names.place(x = 290, y = 200, width = 120, height = 30)
         self.label_show_name_num.place(x = 200, y = 330)
 
-
-
     def label_show_name_adjust(self, the_name):
         label_width = self.label_show_name.winfo_reqwidth()
         window_width = 700  # Width of the main window, adjust as needed
@@ -128,7 +124,15 @@ class APP:
         x_centered = (window_width - label_width) / 2
 
         self.label_show_name.place(x = x_centered, y=10)
-        
+
+    def get_mode(self):
+        # Determine the mode based on the selected radio button.
+        if self.radioBtn_var.get() == 1:
+            return Mode.SEQUENCE
+        elif self.radioBtn_var.get() == 2:
+            return Mode.RANDOM
+        elif self.radioBtn_var.get() == 3:
+            return Mode.DEDUP
 
     def start_point_name(self):
         # Check if there is only one person in the name list.
@@ -158,24 +162,14 @@ class APP:
 
                 # Change the text on the "Start" button.
                 self.btn_start.config(text = "That's you")
-
-                # Determine the mode based on the selected radio button.
-                if self.radioBtn_var.get() == 1:
-                    mode = "sequence"
-                elif self.radioBtn_var.get() == 2:
-                    mode = "random"
-                elif self.radioBtn_var.get() == 3:
-                    mode = "deduplicate"
-
-                else:
-                    pass
-
+                # Get the current mode.
+                mode = self.get_mode()
                 # Start the name selection process in a separate thread.
                 self.thread_it(self.point_name_begin(mode))
             
             # Show a warning if the name list is not loaded.
             else:
-                self.show_warning("Please loading name list first")
+                self.show_warning("Please load name list first")
         
         # If the text is not "Start", stop the process and enable the 
         # "Load Names" button and change the text to "Start".
@@ -183,16 +177,13 @@ class APP:
             self.running_flag = False
             self.btn_load_names.config(state = NORMAL)
             self.btn_start.config(text = "Start")
-            
 
     def point_name_begin(self, mode):
-        if mode == "sequence":
-            while True:
-                if self.running_flag:
-                    self.btn_start.config(text="Next")  # 更改按钮文本为“Next”############
-                    self.next_point_name()
-                    break
-        elif mode == "random":
+        if mode == Mode.SEQUENCE:
+            self.running_flag = False
+            self.btn_start.config(text="Next")  # 更改按钮文本为“Next”############
+            self.next_point_name()
+        elif mode == Mode.RANDOM:
             while True:
                 if self.running_flag:
                     # select a name randomly.
@@ -206,7 +197,7 @@ class APP:
                     time.sleep(self.time_span)
                 else:
                     break
-        elif mode == "deduplicate":
+        elif mode == Mode.DEDUP:
             while True:
                 if self.running_flag and self.default_names:
 
@@ -216,72 +207,61 @@ class APP:
                     # Set the random name as the text to the label.
                     self.label_show_name_var.set(random_choice_name)
                     
-                    #Record the name on the current label.
-                    current_name = self.label_show_name_var.get()#///////////////////
+                    # Record the name on the current label.
+                    current_name = self.label_show_name_var.get()
 
                     # Adjust the name's position. 
                     self.label_show_name_adjust(random_choice_name)
                     time.sleep(self.time_span)
-
-                    
                 elif len(self.default_names)==0:
-                    self.show_warning("All names have been displayed! Please load a new list.")        
+                    # Reset the name list once it is all displayed.
+                    self.initialize_name_list()
+                    self.show_warning("All names have been displayed! Reloaded the original names. Please load a new list if necessary.")
                     break
                 else:
-                    
-                    #Remove the random name"" from name list
+                    # Remove empty lines from name list file.
                     self.default_names.remove(current_name)
                     self.default_names = list(filter(None, self.default_names))  # 删除空行
-                    self.index +=1
-                    self.label_show_name_num.config(text = f"The Number Of Loading Names: {len(self.default_names)}")
-
+                    self.index += 1
+                    self.label_show_name_num.config(text = f"The Number Of The Remaining Names: {len(self.default_names)}")
                     break
 
-
     def next_point_name(self):
+        # If user changed the mode, reset the config.
+        mode = self.get_mode()
+        if mode != Mode.SEQUENCE:
+            self.btn_start.config(text="Start")
+            self.btn_load_names.config(state = NORMAL)
+            self.btn_start.config(command=lambda: self.thread_it(self.start_point_name))
+            return
+
         if len(self.default_names) > 0:  # 如果还有名字
             current_name = self.default_names.pop(0)  # 移除第一个名字并获取
             self.label_show_name_var.set(current_name)  # 设置标签显示当前名字
             self.label_show_name_adjust(current_name)  # 调整标签位置
             self.btn_start.config(text="Next")  # 更改按钮文本为“Next”############
             self.btn_start.config(command=self.next_point_name)  # 更新按钮命令为下一个名字
+            self.label_show_name_num.config(text = f"The Number Of The Remaining Names: {len(self.default_names)}")
         else:
-            self.show_warning("All names have been displayed! Please load a new list.")
+            # Reset the name list once it is all displayed.
+            self.initialize_name_list()
+            self.show_warning("All names have been displayed! Reloaded the original names. Please load a new list if necessary.")
             self.btn_start.config(text="Start")  # 如果名字全部展示完毕，按钮恢复为“Start”状态
             self.btn_load_names.config(state = NORMAL) 
             self.btn_start.config(command=lambda: self.thread_it(self.start_point_name))  # 更新按钮命令为开始点名
 
-
-    def always_ergodic(self):
-        for i in self.default_names:
-            if self.running_flag:
-                self.label_show_name_var.set(i)
-                self.label_show_name_adjust(i)
-
-                self.btn_start.config(text = "That's you")
-
-                time.sleep(self.time_span)
-
-                # If i is the last name of the list, repeat the loop.
-                if i == self.default_names[-1]:
-                    self.show_warning("All names have been displayed!Please load a new list.")        
-                    break
-            else:
-                break
-    
-
     def load_names(self):
 
         # Open the file
-        filename = askopenfilename(filetypes= [('files', '.TXT')], title = "Choose a file", initialdir = "./")
+        self.filename = askopenfilename(filetypes= [('files', '.TXT')], title = "Choose a file", initialdir = "./")
 
-        if filename:
-            names = self.load_names_txt(filename)
+        if self.filename:
+            names = self.load_names_txt(self.filename)
             if names:
                 self.default_names = names
 
                 # Update the label to display the number of the name list.
-                self.label_show_name_num.config(text = f"the total number of loading names: {len(self.default_names)}" )
+                self.label_show_name_num.config(text = f"the total number of loaded names: {len(self.default_names)}" )
                 default_name = "Who will be selected?"
                 self.label_show_name_var.set(default_name)
                 self.label_show_name_adjust(default_name)
@@ -289,8 +269,7 @@ class APP:
                 # Enable the "Start" button.
                 self.btn_start.config(state = NORMAL)
             else:
-                self.show_warning("Fail to loading names. Please check")
-
+                self.show_warning("Fail to load names. Please check")
 
     # Loading names list from a txt file.
     def load_names_txt(self, txt_file):
@@ -303,25 +282,16 @@ class APP:
                     return names
         except:
             return False
-    
 
-    def load_names_check(self, name):
-        regex = r'[\u4e00-\u9fa5]+'
-        if re.match(regex, name):
-            return True
-        else:
-            return False
-    
-
-    def reset_name_list(self,mode = None):
-        init_names = self.load_names_txt("./names.txt")
+    # Reload the original name file.
+    def initialize_name_list(self,mode = None):
+        init_names = self.load_names_txt(self.filename)
         if init_names:
             self.default_names = init_names
-            self.label_show_name_num.config(text=f"The Number Of Loading Names: {len(self.default_names)}")
+            self.label_show_name_num.config(text=f"The Number of Loaded Names: {len(self.default_names)}")
         else:
             self.btn_start.config(state=DISABLED)
-            self.label_show_name_num.config(text="Please Loading Name List First!")
-        
+            self.label_show_name_num.config(text="Please Load Name List First!")
 
     def thread_it(self, func, *args):
 
@@ -334,7 +304,6 @@ class APP:
         # Start the thread.
         t.start()
 
-
     def quit_window(self, *args):
         # Ask for confirmation before closing the application.
         self.root.update()
@@ -342,14 +311,11 @@ class APP:
         if ret:
             self.root.destroy()
 
-    
     def show_info(self, message):
         self.root.after(0, lambda: messagebox.showinfo("INFO", message))
 
-
     def show_warning(self, message):
         self.root.after(0, lambda: messagebox.showwarning("WARNING", message))
-
 
     def ask_yes_no(self, title, message):
         result = messagebox.askyesno(title, message)
@@ -357,6 +323,4 @@ class APP:
             
 
 if __name__ == "__main__":
-    a = APP()
-                
-
+    a = RollCall()
